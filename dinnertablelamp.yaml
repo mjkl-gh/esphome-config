@@ -1,0 +1,6 @@
+substitutions:
+  devicename: dinnertablelamp
+  upper_devicename: "Dinner table lamp"
+
+packages:
+  common: !include devices/lsc-cwww.yaml

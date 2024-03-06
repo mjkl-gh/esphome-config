@@ -1,0 +1,20 @@
+packages:
+  common: !include ../common/esp8285.yaml
+
+light:
+  - platform: cwww
+    name: None
+    id: ${devicename}_light
+    restore_mode: RESTORE_INVERTED_DEFAULT_ON
+    cold_white: output_component1
+    warm_white: output_component2
+    cold_white_color_temperature: 3500 K
+    warm_white_color_temperature: 2000 K
+
+output:
+  - platform: esp8266_pwm
+    id: output_component1
+    pin: 14
+  - platform: esp8266_pwm
+    id: output_component2
+    pin: 12

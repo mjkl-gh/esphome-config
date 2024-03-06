@@ -1,0 +1,144 @@
+substitutions:
+  devicename: barlamp
+  upper_devicename: "Bar Lamp" 
+
+packages:
+  common: !include common/esp32-wrover.yaml
+
+esphome:
+  name: ${devicename}
+  friendly_name:  ${upper_devicename}
+  project:
+    name: esphome.bluetooth-proxy
+    version: "1.0"
+
+globals:
+    - id: pi
+      type: float
+      restore_value: no
+      initial_value: '3.14159'
+    - id: light_activated_by_pir
+      type: bool
+      initial_value: "false"
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+sun:
+  latitude: 51.806844
+  longitude: 4.690540
+  
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: 16
+      mode: INPUT_PULLDOWN
+    name: "${upper_devicename} PIR Sensor"
+    id:   ${devicename}_pir
+    device_class: motion
+    filters:
+      delayed_off: 5min
+    on_press:
+        then:
+          - if:
+              condition:
+                - lambda: 'return not id(${devicename}).current_values.is_on();'
+                - sun.is_below_horizon:
+              then:
+              - light.turn_on: ${devicename}
+              - lambda: 'id(light_activated_by_pir) = true;'
+    on_release:
+        then:
+          - if:
+              condition:
+               - lambda: 'return id(light_activated_by_pir);'
+              then:
+                - light.turn_off: ${devicename}
+                - lambda: 'id(light_activated_by_pir) = false;'
+
+light:
+  - platform: monochromatic
+    name: None
+    output: dummy_pwm
+    id: ${devicename}
+    default_transition_length: 1s
+    
+output:
+  - platform: ledc
+    pin: 23
+    id: '${devicename}_out'
+    inverted: true
+  - platform: ledc
+    pin: 26
+    id: '${devicename}_out1'
+    inverted: true
+  - platform: ledc
+    pin: 18
+    id: '${devicename}_out2'
+    inverted: true
+  - platform: ledc
+    pin: 19
+    id: '${devicename}_out3'
+    inverted: true
+  - platform: ledc
+    pin: 32
+    id: 'dummy_pwm'
+    inverted: true
+        
+    
+i2c:
+   - id: bus_a
+     frequency: 400khz
+     sda: 21
+     scl: 22
+     scan: True
+     
+sensor:
+  - platform: sht3xd
+    id: bedroom_atmosphere
+    temperature:
+      name: "${upper_devicename} Temperature"
+    humidity:
+      name: "${upper_devicename} Humidity"
+    i2c_id: bus_a
+    address: 0x45
+    update_interval: 60s
+    
+  - platform: template
+    name: "${upper_devicename} Brightness Sensor"
+    id: sensor_${devicename}_bright
+    internal: true
+    update_interval: 5ms
+    accuracy_decimals: 3
+    filters:
+      delta: 0.005
+    lambda: |-
+      if (id(${devicename}).current_values.is_on()) {
+        return (float(id(${devicename}).current_values.get_brightness()));
+      }
+      else {
+        return 0;
+      }
+            
+interval:
+  - interval: 20ms
+    then:
+      - lambda: |-
+          auto time = id(homeassistant_time).now();
+          float light0 = float(id(sensor_${devicename}_bright).state)*pow(sin(millis()/3500.0+id(pi)*0.5),6);
+          float light1 = float(id(sensor_${devicename}_bright).state)*pow(sin(millis()/3500.0+id(pi)*0),6);
+          float light2 = float(id(sensor_${devicename}_bright).state)*pow(sin(millis()/3500.0+id(pi)*0.25),6);
+          float light3 = float(id(sensor_${devicename}_bright).state)*pow(sin(millis()/3500.0+id(pi)*0.75),6);         
+          id(${devicename}_out).set_level(light0);
+          id(${devicename}_out1).set_level(light1);
+          id(${devicename}_out2).set_level(light2);
+          id(${devicename}_out3).set_level(light3);
+
+
+button:
+- platform: safe_mode
+  name: Safe Mode Boot
+  entity_category: diagnostic        
+
+  

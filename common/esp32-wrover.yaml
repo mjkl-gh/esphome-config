@@ -1,0 +1,5 @@
+esp32:
+  board: esp-wrover-kit
+
+packages:
+  esp32-base: !include esp32-base.yaml

@@ -1,0 +1,6 @@
+substitutions:
+  devicename: bedroomlamp
+  upper_devicename: "Bedroom lamp"
+
+packages:
+  common: !include devices/lsc-cwww.yaml

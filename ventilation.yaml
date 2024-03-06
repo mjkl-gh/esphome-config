@@ -1,0 +1,203 @@
+substitutions:
+  devicename: ventilation
+  upper_devicename: Ventilation
+
+packages:
+  common: !include devices/KMP-PRODINo-ESP32EX.yaml
+
+i2c:
+
+globals:
+  - id: virtual_relay1
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: virtual_relay2
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: virtual_relay3
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: virtual_relay4
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+sensor:
+  - platform: bmp280
+    address: 0x76
+    temperature:
+      name: "Control box temperature 1"
+    pressure:
+      name: "Control box pressure"
+  - platform: sht4x
+    temperature:
+      name: "Control box temperature 2"
+    humidity:
+      name: "Control box humidity"
+  - platform: duty_time
+    id: my_climate_work_time
+    name: My Climate Work Time
+    # ... EOR 'lambda'
+    lambda: "return id(virtual_relay1);"
+    # Restore (optional, default: False)
+    restore: false
+    # Sensor for last turn-on time (optional)
+    last_time:
+      name: My Climate Last Turn-On Time
+
+switch:
+  - platform: template
+    name: "Handmatig afzuigen laag"
+    id: virtual_switch_extraction_low
+    optimistic: True
+    on_turn_on:
+      script.execute: ventilation_script
+    on_turn_off:
+      script.execute: ventilation_script
+  - platform: template
+    name: "Handmatig afzuigen hoog"
+    id: virtual_switch_extraction_high
+    optimistic: True
+    on_turn_on:
+      script.execute: ventilation_script
+    on_turn_off:
+      script.execute: ventilation_script
+  - platform: template
+    name: "Handmatig circuleren"
+    id: virtual_switch_circulation
+    optimistic: True
+    on_turn_on:
+      script.execute: ventilation_script
+    on_turn_off:
+      script.execute: ventilation_script
+
+
+script:
+  - id: ventilation_script
+    then:
+      - if:
+          condition:
+            and:
+            - binary_sensor.is_off: input1
+            - binary_sensor.is_off: input2
+            - binary_sensor.is_off: input3_delayed_off
+            - binary_sensor.is_off: input4
+            - switch.is_off: virtual_switch_extraction_low
+            - switch.is_off: virtual_switch_extraction_high
+            - switch.is_off: virtual_switch_circulation
+          then:
+            - output.turn_off: relay1
+            - globals.set:
+                id: virtual_relay1
+                value: "false"
+          else:
+            - output.turn_on: relay1
+            - globals.set:
+                id: virtual_relay1
+                value: "true"
+
+      - if:
+          condition:
+            and:
+            - binary_sensor.is_off: input1
+            - binary_sensor.is_off: input2
+            - binary_sensor.is_off: input4
+            - switch.is_off: virtual_switch_extraction_low
+          then:
+            - output.turn_off: relay2
+            - globals.set:
+                id: virtual_relay2
+                value: "false"
+          else:
+            - output.turn_on: relay2
+            - globals.set:
+                id: virtual_relay2
+                value: "true"
+      - if:
+          condition:
+            and:
+            - binary_sensor.is_off: input1
+            - binary_sensor.is_off: input2
+            - switch.is_off: virtual_switch_extraction_high
+          then:
+            - output.turn_off: relay3
+            - globals.set:
+                id: virtual_relay3
+                value: "false"
+          else:
+            - output.turn_on: relay3
+            - globals.set:
+                id: virtual_relay3
+                value: "true"
+      - if:
+          condition:
+            and:
+            - binary_sensor.is_off: input3
+          then:
+            - output.turn_off: relay4
+            - globals.set:
+                id: virtual_relay4
+                value: "false"
+          else:
+            - output.turn_on: relay4
+            - globals.set:
+                id: virtual_relay4
+                value: "true"
+
+
+binary_sensor:
+  - platform: template
+    id: input3_delayed_off
+    name: "Nadraaien ventilatie"
+    lambda: "return id(input3).state;"
+    filters:
+      delayed_off: 3min
+    on_state:
+      script.execute: ventilation_script
+
+  - platform: template
+    id: intake_circulation_fan
+    name: "Inblaas/Circulatie ventilator"
+    lambda: "return id(virtual_relay1);"
+
+  - platform: template
+    id: extraction_fan_low
+    name: "Afzuiging laag"
+    lambda: "return id(virtual_relay2);"
+
+  - platform: template
+    id: extraction_fan_high
+    name: "Afzuiging hoog"
+    lambda: "return id(virtual_relay3);"
+
+  - platform: template
+    id: request_heating
+    name: "Aanvraag CV warmte"
+    lambda: "return id(virtual_relay4);"
+
+  - id: !extend input1
+    name: "Aanvraag afzuiging keuken"
+    on_state:
+      script.execute: ventilation_script
+
+
+  - id: !extend input2
+    name: "Aanvraag afzuiging badkamer"
+    on_state:
+      script.execute: ventilation_script
+
+
+  - id: !extend input3
+    name: "Warmtevraag woonkamer"
+    on_state:
+      script.execute: ventilation_script
+
+
+  - id: !extend input4
+    name: "Aanvraag afzuiging woonkamer"
+    on_state:
+      script.execute: ventilation_script
+

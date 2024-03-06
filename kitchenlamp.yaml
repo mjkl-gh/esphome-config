@@ -1,0 +1,94 @@
+substitutions:
+  devicename: kitchenlamp
+  upper_devicename: Kitchen Lamp
+
+packages:
+  common: !include common/esp32-wrover.yaml
+
+i2c:
+  sda: GPIO17
+  scl: GPIO16
+  scan: True
+  id: bus_a
+  # frequency: 10kHz
+  
+binary_sensor:
+  - platform: status
+    name: "${upper_devicename} Status"
+
+sensor:
+  - platform: uptime
+    name: "${upper_devicename} Uptime Sensor"
+  
+  - platform: wifi_signal
+    name: "${upper_devicename} signal strength"
+    update_interval: 10s
+    id: ${devicename}_wifi_dB
+    
+  - platform: bme280_i2c
+    i2c_id: bus_a
+    temperature:
+      name: "${upper_devicename} Temperature"
+      id: ${devicename}_temperature
+    pressure:
+      name: "${upper_devicename} Pressure"
+      id: ${devicename}_pressure
+    humidity:
+      name: "${upper_devicename} Relative Humidity"
+      id: ${devicename}_humidity
+    address: 0x76
+  - platform: template
+    name: "Equivalent sea level pressure"
+    lambda: |-
+      const float STANDARD_ALTITUDE = 10; // in meters, see note
+      return id(${devicename}_pressure).state / powf(1 - ((0.0065 * STANDARD_ALTITUDE) /
+        (id(${devicename}_temperature).state + (0.0065 * STANDARD_ALTITUDE) + 273.15)), 5.257); // in hPa
+    update_interval: 15s
+    unit_of_measurement: 'hPa'
+  - platform: template
+    name: "Absolute Humidity"
+    lambda: |-
+      const float mw = 18.01534;    // molar mass of water g/mol
+      const float r = 8.31447215;   // Universal gas constant J/mol/K
+      return (6.112 * powf(2.718281828, (17.67 * id(${devicename}_temperature).state) /
+        (id(${devicename}_temperature).state + 243.5)) * id(${devicename}_humidity).state * mw) /
+        ((273.15 + id(${devicename}_temperature).state) * r); // in grams/m^3
+    accuracy_decimals: 2
+    update_interval: 60s
+    id: ${devicename}_absolute_humidity
+    unit_of_measurement: 'g/m³'
+    
+switch:
+  - platform: restart
+    id: restart_switch
+    name: "${upper_devicename} Restart"
+
+output:
+  - platform: ledc
+    id: red_output
+    pin: GPIO23 
+  - platform: ledc
+    id: green_output
+    pin: GPIO19
+  - platform: ledc
+    id: blue_output
+    pin: GPIO5
+  - platform: ledc
+    id: white_output
+    pin: GPIO26
+  - platform: ledc
+    id: ct_output
+    pin: GPIO33
+
+light:
+  - platform: rgbww
+    restore_mode: RESTORE_INVERTED_DEFAULT_ON
+    name: None
+    red: red_output
+    green: green_output
+    blue: blue_output
+    cold_white: white_output
+    warm_white: ct_output
+    cold_white_color_temperature: 153 mireds
+    warm_white_color_temperature: 500 mireds
+    constant_brightness: true

@@ -1,0 +1,9 @@
+wifi:
+  ssid: !secret ssid
+  password: !secret wifipassword
+  use_address: "${devicename}.iot.dragundo.net"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${upper_devicename} Hotspot"
+    password: !secret fallback_wifipassword

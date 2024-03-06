@@ -1,0 +1,13 @@
+esphome:
+  name: ${devicename}
+  friendly_name: ${upper_devicename}
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
