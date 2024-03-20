@@ -7,3 +7,20 @@ wifi:
   ap:
     ssid: "${upper_devicename} Hotspot"
     password: !secret fallback_wifipassword
+
+sensor:
+  # WiFi Signal sensor.
+  - platform: wifi_signal
+    name: ${upper_devicename} Signal strength
+    update_interval: 60s
+    internal: true
+
+text_sensor:
+  # Expose WiFi information as sensors.
+  - platform: wifi_info
+    ip_address:
+      name: ${upper_devicename} IP
+    ssid:
+      name: ${upper_devicename} SSID
+    bssid:
+      name: ${upper_devicename} BSSID
