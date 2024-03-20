@@ -15,6 +15,10 @@ bme680_bsec:
   i2c_id: bus_b
   address: 0x77
 
+light:
+  - id: !extend led1
+    internal: True 
+
 sensor:
   - platform: bme680_bsec
     temperature:
