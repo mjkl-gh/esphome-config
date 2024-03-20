@@ -11,3 +11,18 @@ api:
     key: !secret api_encryption_key
 
 ota:
+  safe_mode: true
+  password: !secret ota_password
+
+switch:
+  # this provides for a possibility to restart from the web console or Home automation should we ever need it
+  - platform: restart
+    name: "${upper_devicename} Restart"
+  - platform: safe_mode
+    name: "${upper_devicename} Restart (Safe Mode)"
+
+# Sensors with general information.
+sensor:
+  - platform: uptime
+    name: "${upper_devicename} Uptime"
+    id: uptime_sensor
