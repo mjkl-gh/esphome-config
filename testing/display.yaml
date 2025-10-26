@@ -1,0 +1,30 @@
+packages:
+    colors: !include ../colors/my_colors.yaml
+
+font:
+  - file: "gfonts://Roboto"
+    id: roboto_48
+    size: 48
+  - file: "gfonts://Roboto"
+    id: roboto_24
+    size: 24
+  - file: "gfonts://Roboto"
+    id: roboto_12
+    size: 12
+
+display:
+  - id: !extend screen
+    lambda: |-
+      it.rectangle(0,  0, it.get_width(), it.get_height(), id(my_blue));
+      it.rectangle(0, 20, it.get_width(), it.get_height(), id(my_blue));   // header bar
+
+      it.strftime((240 / 2), (140 / 3) * 1 + 5, id(roboto_24), id(my_gray), TextAlign::CENTER, "%Y-%m-%d", id(homeassistant_time).now());
+      it.strftime((240 / 2), (140 / 3) * 2 + 5, id(roboto_48), id(my_gray), TextAlign::CENTER, "%H:%M:%S", id(homeassistant_time).now());
+      it.print(5, 5, id(roboto_12), id(my_yellow), TextAlign::TOP_LEFT, "ESPHome");
+
+      if (id(system_status).state) {
+        it.print(235, 5, id(roboto_12), id(my_green), TextAlign::TOP_RIGHT, "Online");
+      }
+      else {
+        it.print(235, 5, id(roboto_12), id(my_red), TextAlign::TOP_RIGHT, "Offline");
+      }

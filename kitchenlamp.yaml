@@ -57,11 +57,6 @@ sensor:
     update_interval: 60s
     id: ${devicename}_absolute_humidity
     unit_of_measurement: 'g/m³'
-    
-switch:
-  - platform: restart
-    id: restart_switch
-    name: "${upper_devicename} Restart"
 
 output:
   - platform: ledc

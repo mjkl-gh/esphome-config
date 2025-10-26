@@ -1,0 +1,73 @@
+substitutions:
+  name: "seeedstudio-mr60bha2-kit"
+  devicename: "seeedstudio-mr60bha2-kit"
+  friendly_name: "Seeed Studio MR60BHA2 Kit"
+  upper_devicename: "MR60BHA2"
+
+packages:
+  wifi: !include common/wifi.yaml
+  base: !include common/base.yaml
+
+web_server:
+  version: 3
+  port: 80
+
+wifi:
+  ssid: Test
+  password: "1234567890"
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+
+esp32:
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
+  flash_size: 4MB # upload.flash_size
+  framework:
+    type: esp-idf
+
+# For XIAO ESP32C6 Onboard LED
+light:
+  - platform: status_led
+    name: "Switch state"
+    pin: GPIO15
+  - platform: esp32_rmt_led_strip
+    id: led_ring
+    name: "Seeed MR60BHA2 RGB Light"
+    pin: GPIO1
+    num_leds: 1
+    rgb_order: GRB
+    chipset: ws2812
+
+i2c:
+  sda: GPIO22
+  scl: GPIO23
+  scan: true
+  id: bus_a
+
+uart:
+  id: uart_bus
+  baud_rate: 115200
+  rx_pin: 17
+  tx_pin: 16
+  parity: NONE
+  stop_bits: 1
+
+seeed_mr60bha2:
+
+binary_sensor:
+  - platform: seeed_mr60bha2
+    has_target:
+      name: "Person Information"
+
+sensor:
+  - platform: bh1750
+    name: "Seeed MR60BHA2 Illuminance"
+    address: 0x23
+  - platform: seeed_mr60bha2
+    breath_rate:
+      name: "Real-time respiratory rate"
+    heart_rate:
+      name: "Real-time heart rate"
+    distance:
+      name: "Distance to detection object"
+    num_targets:
+      name: "Target number"

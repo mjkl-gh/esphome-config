@@ -1,0 +1,13 @@
+substitutions:
+  devicename: "ld2450radar"
+  upper_devicename: "Hi-link LD2450 radar"
+
+packages:
+  device: !include common/esp32-wrover.yaml
+  # testing: !include testing/display.yaml
+  radar: !include common/ld2450.yaml
+
+esp32:
+  framework:
+    type: arduino
+

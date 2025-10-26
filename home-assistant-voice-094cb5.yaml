@@ -1,0 +1,64 @@
+substitutions:
+  devicename: ha-voice-bedroom
+  upper_devicename: HA Voice Bedroom
+packages:
+  Nabu Casa.Home Assistant Voice PE: github://esphome/voice-kit/home-assistant-voice.yaml
+  grove-i2c: github://esphome/home-assistant-voice-pe/modules/grove-i2c.yaml
+  wifi: !include common/wifi-with-captive-portal.yaml
+  common: !include common/base.yaml
+
+esphome:
+  name_add_mac_suffix: false
+
+sensor:
+  - platform: bme680
+    i2c_id: grove_i2c
+    temperature:
+      name: "BME680 Temperature"
+    pressure:
+      name: "BME680 Pressure"
+    humidity:
+      id: "humidity"
+      name: "BME680 Humidity"
+    gas_resistance:
+      id: "gas_resistance"
+      name: "BME680 Gas Resistance"
+    address: 0x77
+  - platform: template
+    name: "BME680 Indoor Air Quality"
+    id: iaq
+    icon: "mdi:gauge"
+    # calculation: comp_gas = log(R_gas[ohm]) + 0.04 log(Ohm)/%rh * hum[%rh]
+    lambda: |-
+      return log(id(gas_resistance).state) + 0.04 *  id(humidity).state;
+    state_class: "measurement"
+text_sensor:
+  - platform: template
+    name: "BME680 IAQ Classification"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if (int(id(iaq).state) <= 50) {
+        return {"Excellent"};
+      }
+      else if (int(id(iaq).state) <= 100) {
+        return {"Good"};
+      }
+      else if (int(id(iaq).state) <= 150) {
+        return {"Lightly polluted"};
+      }
+      else if (int(id(iaq).state) <= 200) {
+        return {"Moderately polluted"};
+      }
+      else if (int(id(iaq).state) <= 250) {
+        return {"Heavily polluted"};
+      }
+      else if (int(id(iaq).state) <= 350) {
+        return {"Severely polluted"};
+      }
+      else if (int(id(iaq).state) <= 500) {
+        return {"Extremely polluted"};
+      }
+      else {
+        return {"unknown"};
+      }
+

@@ -11,8 +11,10 @@ api:
     key: !secret api_encryption_key
 
 ota:
-  safe_mode: true
+  platform: esphome
   password: !secret ota_password
+
+safe_mode:
 
 switch:
   # this provides for a possibility to restart from the web console or Home automation should we ever need it
@@ -26,3 +28,12 @@ sensor:
   - platform: uptime
     name: "${upper_devicename} Uptime"
     id: uptime_sensor
+
+binary_sensor:
+  - platform: status
+    name: "Node Status"
+    id: system_status
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time

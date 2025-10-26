@@ -1,0 +1,25 @@
+substitutions:
+  devicename: ha-voice-living-room
+  upper_devicename: HA Voice Living Room
+packages:
+  Nabu Casa.Home Assistant Voice PE: github://esphome/voice-kit/home-assistant-voice.yaml
+  grove-i2c: github://esphome/home-assistant-voice-pe/modules/grove-i2c.yaml
+  wifi: !include common/wifi-with-captive-portal.yaml
+  common: !include common/base.yaml
+
+esphome:
+  name_add_mac_suffix: false
+
+sensor:
+  - platform: sht4x
+    i2c_id: grove_i2c
+    temperature:
+      name: Temperature
+    humidity:
+      name: Humidity
+
+  - platform: bmp280_i2c
+    i2c_id: grove_i2c
+    address: 0x76
+    pressure:
+      name: Pressure

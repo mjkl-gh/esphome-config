@@ -1,0 +1,38 @@
+packages:
+  common: !include ../common/esp8285.yaml
+
+light:
+  - platform: rgbww
+    name: none
+    id: ${devicename}_light
+    restore_mode: RESTORE_INVERTED_DEFAULT_ON
+    warm_white: warm_white
+    cold_white: white
+    red: red
+    green: green
+    blue: blue
+    
+    cold_white_color_temperature: 6000 K
+    warm_white_color_temperature: 3000 K
+    color_interlock: true
+    
+output:
+  - platform: esp8266_pwm
+    id: red
+    pin: GPIO4
+    
+  - platform: esp8266_pwm
+    id: green
+    pin: GPIO12
+    
+  - platform: esp8266_pwm
+    id: blue
+    pin: GPIO14
+    
+  - platform: esp8266_pwm
+    id: white
+    pin: GPIO5
+    
+  - platform: esp8266_pwm
+    id: warm_white
+    pin: GPIO13

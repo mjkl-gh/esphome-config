@@ -4,6 +4,10 @@ substitutions:
 
 packages:
   common: !include devices/M5StickC-Plus.yaml
+  
+esp32:
+  framework:
+    type: arduino
 
 i2c:
    - id: bus_b
@@ -11,16 +15,32 @@ i2c:
      scl: GPIO33
      scan: True
 
-bme680_bsec:
+external_components:
+  - source: github://martydingo/esphome-axp192
+    components: [axp192]
+
+# AXP192 power management - must be present to initialize TFT power on
+sensor:
+  - platform: axp192
+    model: M5STICKC
+    address: 0x34
+    i2c_id: bus_a
+    update_interval: 30s
+    battery_level:
+      name: "M5Stick Battery Level"
+      id: "m5stick_batterylevel"
+
+bme68x_bsec2_i2c:
+  model: bme688
   i2c_id: bus_b
   address: 0x77
 
 light:
-  - id: !extend led1
+  - id:  !extend led1
     internal: True 
 
 sensor:
-  - platform: bme680_bsec
+  - platform: bme68x_bsec2
     temperature:
       name: "BME680 Temperature"
     pressure:
@@ -36,7 +56,7 @@ sensor:
       name: "BME680 Breath VOC Equivalent"
 
 text_sensor:
-  - platform: bme680_bsec
+  - platform: bme68x_bsec2
     iaq_accuracy:
       name: "BME680 IAQ Accuracy"
 
@@ -68,4 +88,3 @@ text_sensor:
       else {
         return {"error"};
       }
-    

@@ -1,0 +1,14 @@
+substitutions:
+  devicename: closetlamp
+  upper_devicename: "Closet lamp"
+
+packages:
+  common: !include devices/lsc-cwww.yaml
+
+light:
+  - id: !extend ${devicename}_light
+    on_turn_on:
+    - delay: 3600s
+    - light.turn_off: 
+        id: ${devicename}_light
+        transition_length: 60s

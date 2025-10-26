@@ -1,0 +1,17 @@
+substitutions:
+  devicename: m5stickc-plus-ble
+  upper_devicename: M5stickC Plus Ble
+
+packages:
+  m5stickc: !include devices/M5StickC-Plus.yaml
+  ble: !include common/ble.yaml
+
+i2c:
+   - id: bus_b
+     sda: GPIO32
+     scl: GPIO33
+     scan: True
+
+light:
+  - id:  !extend led1
+    internal: True 

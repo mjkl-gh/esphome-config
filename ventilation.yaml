@@ -4,6 +4,10 @@ substitutions:
 
 packages:
   common: !include devices/KMP-PRODINo-ESP32EX.yaml
+  modbus: !include devices/Waveshare-Modbus-RTU-Relay-D.yaml
+
+web_server:
+  version: 3
 
 i2c:
 
@@ -24,19 +28,24 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+  - id: virtual_relay5
+    type: bool
+    restore_value: no
+    initial_value: "false"
 
 sensor:
-  - platform: bmp280
-    address: 0x76
-    temperature:
-      name: "Control box temperature 1"
-    pressure:
-      name: "Control box pressure"
   - platform: sht4x
     temperature:
-      name: "Control box temperature 2"
+      name: "SHT40 Temperature"
     humidity:
-      name: "Control box humidity"
+      name: "SHT40 Relative Humidity"
+  - platform: bmp280_i2c
+    address: 0x76
+    temperature:
+      name: "BMP280 Temperature"
+      oversampling: 16x
+    pressure:
+      name: "BMP280 Pressure"
   - platform: duty_time
     id: my_climate_work_time
     name: My Climate Work Time
@@ -73,21 +82,25 @@ switch:
       script.execute: ventilation_script
     on_turn_off:
       script.execute: ventilation_script
+  - platform: template
+    name: "Luchtverwarming"
+    id: virtual_switch_air_heating
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON 
+    on_turn_on:
+      script.execute: ventilation_script
+    on_turn_off:
+      script.execute: ventilation_script
 
 
 script:
   - id: ventilation_script
     then:
+# relay1 - heat request boiler
       - if:
           condition:
             and:
-            - binary_sensor.is_off: input1
-            - binary_sensor.is_off: input2
-            - binary_sensor.is_off: input3_delayed_off
-            - binary_sensor.is_off: input4
-            - switch.is_off: virtual_switch_extraction_low
-            - switch.is_off: virtual_switch_extraction_high
-            - switch.is_off: virtual_switch_circulation
+            - binary_sensor.is_off: input3
           then:
             - output.turn_off: relay1
             - globals.set:
@@ -98,7 +111,7 @@ script:
             - globals.set:
                 id: virtual_relay1
                 value: "true"
-
+# relay2 - extraction fan
       - if:
           condition:
             and:
@@ -107,15 +120,16 @@ script:
             - binary_sensor.is_off: input4
             - switch.is_off: virtual_switch_extraction_low
           then:
-            - output.turn_off: relay2
+            - output.turn_off: relay3
             - globals.set:
                 id: virtual_relay2
                 value: "false"
           else:
-            - output.turn_on: relay2
+            - output.turn_on: relay3
             - globals.set:
                 id: virtual_relay2
                 value: "true"
+# relay2 - extraction fan low/high
       - if:
           condition:
             and:
@@ -123,19 +137,23 @@ script:
             - binary_sensor.is_off: input2
             - switch.is_off: virtual_switch_extraction_high
           then:
-            - output.turn_off: relay3
+            - output.turn_off: relay2
             - globals.set:
                 id: virtual_relay3
                 value: "false"
           else:
-            - output.turn_on: relay3
+            - output.turn_on: relay2
             - globals.set:
                 id: virtual_relay3
                 value: "true"
+# relay4 - recirculation valve on/off
       - if:
           condition:
             and:
-            - binary_sensor.is_off: input3
+            - binary_sensor.is_off: input1
+            # - binary_sensor.is_off: input2 # Anna likes to shower in the evening might turn this off in winter
+            - switch.is_off: virtual_switch_extraction_high
+            - switch.is_off: virtual_switch_circulation
           then:
             - output.turn_off: relay4
             - globals.set:
@@ -146,26 +164,62 @@ script:
             - globals.set:
                 id: virtual_relay4
                 value: "true"
-
+# modbus - circulation fan
+      - if:
+          condition:
+            or:
+            - binary_sensor.is_on: input1
+            - and:
+                - binary_sensor.is_on: input3
+                - switch.is_on: virtual_switch_air_heating
+            - switch.is_on: virtual_switch_extraction_high
+          then:
+            - fan.turn_on: 
+                id: intake_circulation_fan
+                speed: 5 
+            - globals.set:
+                id: virtual_relay5
+                value: "true"  
+          else:
+            - if:
+                condition:
+                  or:
+                  - binary_sensor.is_on: input2
+                  - binary_sensor.is_on: input3_delayed_off
+                  - binary_sensor.is_on: input4
+                  - switch.is_on: virtual_switch_extraction_low
+                then:
+                  - fan.turn_on: 
+                      id: intake_circulation_fan
+                      speed: 3
+                  - globals.set:
+                      id: virtual_relay5
+                      value: "true"
+                else:
+                  - fan.turn_off: 
+                      id: intake_circulation_fan
+                  - globals.set:
+                      id: virtual_relay5
+                      value: "false"
 
 binary_sensor:
   - platform: template
     id: input3_delayed_off
     name: "Nadraaien ventilatie"
-    lambda: "return id(input3).state;"
+    lambda: "return (id(input3).state && id(virtual_switch_air_heating).state);"
     filters:
-      delayed_off: 3min
+      delayed_off: 6min
     on_state:
       script.execute: ventilation_script
 
   - platform: template
-    id: intake_circulation_fan
-    name: "Inblaas/Circulatie ventilator"
+    id: request_heating
+    name: "Aanvraag CV warmte"
     lambda: "return id(virtual_relay1);"
 
   - platform: template
     id: extraction_fan_low
-    name: "Afzuiging laag"
+    name: "Afzuiging"
     lambda: "return id(virtual_relay2);"
 
   - platform: template
@@ -174,8 +228,8 @@ binary_sensor:
     lambda: "return id(virtual_relay3);"
 
   - platform: template
-    id: request_heating
-    name: "Aanvraag CV warmte"
+    id: recirculation_valve_off
+    name: "Recirculatie klep dicht"
     lambda: "return id(virtual_relay4);"
 
   - id: !extend input1
@@ -201,3 +255,81 @@ binary_sensor:
     on_state:
       script.execute: ventilation_script
 
+fan:
+  - platform: speed
+    output: discrete_output
+    id: intake_circulation_fan
+    name: "Circulation fan"
+    speed_count: 5
+  
+output:
+  - platform: opentherm
+    rel_mod_level:
+      name: "Boiler Relative modulation level"
+  - platform: template
+    type: float
+    id: discrete_output
+    write_action:
+      - if:
+          condition:
+            lambda: return ((state == 0));
+          then:
+            - output.turn_off: modbus_out0
+            - output.turn_off: modbus_out1
+            - output.turn_off: modbus_out2
+            - output.turn_off: modbus_out3
+            - output.turn_off: modbus_out4
+      - if:
+          condition:
+            lambda: return ((state > 0) && (state <= .21));
+          then:
+            - output.turn_on: modbus_out0
+            - output.turn_off: modbus_out1
+            - output.turn_off: modbus_out2
+            - output.turn_off: modbus_out3
+            - output.turn_off: modbus_out4
+      - if:
+          condition:
+            lambda: return ((state > 0.21) && (state <= 0.41));
+          then:
+            - output.turn_off: modbus_out0
+            - output.turn_on: modbus_out1
+            - output.turn_off: modbus_out2
+            - output.turn_off: modbus_out3
+            - output.turn_off: modbus_out4
+      - if:
+          condition:
+            lambda: return ((state > 0.41) && (state <= 0.61));
+          then:
+            - output.turn_off: modbus_out0
+            - output.turn_off: modbus_out1
+            - output.turn_on: modbus_out2
+            - output.turn_off: modbus_out3
+            - output.turn_off: modbus_out4
+      - if:
+          condition:
+            lambda: return ((state > 0.61) && (state <= 0.81));
+          then:
+            - output.turn_off: modbus_out0
+            - output.turn_off: modbus_out1
+            - output.turn_off: modbus_out2
+            - output.turn_on: modbus_out3
+            - output.turn_off: modbus_out4
+      - if:
+          condition:
+            lambda: return ((state > 0.81) && (state <= 1.0));
+          then:
+            - output.turn_off: modbus_out0
+            - output.turn_off: modbus_out1
+            - output.turn_off: modbus_out2
+            - output.turn_off: modbus_out3
+            - output.turn_on: modbus_out4
+
+opentherm:
+  in_pin: GPIOXX
+  out_pin: GPIOXX
+  dhw_enable: true    # Note that when we specify an input in hub config with a static value, it can't be
+                      # changed without uploading new firmware. If you want to be able to turn things on or off,
+                      # use a switch (see the ch_enable switch below).
+                      # Also note that when we define an input as a switch (or use other platform), we don't need
+                      # to set it at hub level.

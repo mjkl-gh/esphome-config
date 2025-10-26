@@ -1,0 +1,15 @@
+esphome:
+    name: discrete
+
+output:
+  - platform: template
+    id: discrete_output
+    type: float
+    write_action:
+        output.turn_on:
+            modbus_out0
+        output.turn_off:
+            -  modbus_out1
+            -  modbus_out2
+            -  modbus_out3
+            -  modbus_out4

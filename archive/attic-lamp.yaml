@@ -1,0 +1,30 @@
+esphome:
+  name: attic-lamp
+  friendly_name: Attic lamp
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "rVUmi87mGzB/5V7omj22qqFr1KM8K9pxpiW2m2fo2eQ="
+
+ota:
+  - platform: esphome
+    password: "e9b1ce6db3f80e2c6e663fc33b9ae7b0"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Attic-Lamp Fallback Hotspot"
+    password: "IvgO3Zi2vJHQ"
+
+captive_portal:
+    

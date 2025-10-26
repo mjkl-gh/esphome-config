@@ -1,0 +1,14 @@
+esp32:
+  variant: esp32c6
+  board: esp32-c6-devkitc-1
+  framework:
+    type: esp-idf
+    # version: 5.3.1 # https://github.com/espressif/esp-idf/releases/tag/v5.3.1
+    # platform_version: 6.9.0 # https://github.com/platformio/platform-espressif32/releases/tag/v6.9.0
+    # sdkconfig_options:
+      # CONFIG_ESPTOOLPY_FLASHSIZE_8MB: y
+      # CONFIG_ESPTOOLPY_FLASHSIZE_DETECT: y
+      # COMPILER_OPTIMIZATION_SIZE: y
+
+packages:
+  esp32-base: !include esp32-base.yaml

@@ -1,0 +1,119 @@
+esp8266:
+  board: nodemcuv2
+  restore_from_flash: true
+
+substitutions:
+  devicename: toiletlamp
+  upper_devicename: "Toilet lamp"
+
+packages:
+  wifi: !include ./common/wifi-with-captive-portal.yaml
+  base: !include ./common/base.yaml
+
+i2c:
+   - sda: GPIO1
+     scl: GPIO3
+     scan: True
+     frequency: 10kHz
+
+logger:
+    
+binary_sensor:
+  - platform: gpio
+    pin: GPIO16
+    device_class: motion
+    name: ${devicename} PIR Sensor
+    id: motion
+    # filters:
+    #   - delayed_on: 5s  
+    on_press:
+    - if:
+        condition:
+          lambda: 'return id(uptime_sensor).state > 10;'
+        then:
+          - light.turn_on: ${devicename}
+      
+  - platform: template
+    name: delayed_switch
+    lambda: 'return id(motion).state;'
+    internal: true
+    filters:
+      - delayed_off: 2min
+    on_release:
+      - light.turn_off: 
+          id: ${devicename}
+          transition_length: 60s
+
+sensor:
+  - platform: bme280_i2c
+    temperature:
+      name: "${upper_devicename} Temperature"
+      id: bme280_temperature
+    pressure:
+      name: "${upper_devicename} Pressure"
+      id: bme280_pressure
+    humidity:
+      name: "${upper_devicename} Relative Humidity"
+      id: bme280_humidity
+    address: 0x76
+    update_interval: 15s
+  - platform: template
+    name: "${upper_devicename} Altitude"
+    lambda: |-
+      const float STANDARD_SEA_LEVEL_PRESSURE = 1013.25; //in hPa, see note
+      return ((id(bme280_temperature).state + 273.15) / 0.0065) *
+        (powf((STANDARD_SEA_LEVEL_PRESSURE / id(bme280_pressure).state), 0.190234) - 1); // in meter
+    update_interval: 15s
+    icon: 'mdi:signal'
+    unit_of_measurement: 'm'
+  - platform: absolute_humidity
+    name: "${upper_devicename} Absolute Humidity"
+    temperature: bme280_temperature
+    humidity: bme280_humidity
+  - platform: template
+    name: "${upper_devicename} Dew Point"
+    lambda: |-
+      return (243.5*(log(id(bme280_humidity).state/100)+((17.67*id(bme280_temperature).state)/
+      (243.5+id(bme280_temperature).state)))/(17.67-log(id(bme280_humidity).state/100)-
+      ((17.67*id(bme280_temperature).state)/(243.5+id(bme280_temperature).state))));
+    unit_of_measurement: °C
+    icon: 'mdi:thermometer-alert'
+  - id: !extend uptime_sensor
+    on_value_range:
+        - above: 10
+          then:
+          - if:
+              condition:
+                binary_sensor.is_on: motion
+              then:
+                light.turn_on: ${devicename}
+
+output:
+  - platform: esp8266_pwm
+    id: output_blue
+    pin: GPIO14
+  - platform: esp8266_pwm
+    id: output_red
+    pin: GPIO13
+  - platform: esp8266_pwm
+    id: output_green
+    pin: GPIO12
+  - platform: esp8266_pwm
+    id: output_cw
+    pin: GPIO5
+  - platform: esp8266_pwm
+    id: output_ww
+    pin: GPIO4
+
+light:
+  - platform: rgbww
+    id: ${devicename}
+    name: ${upper_devicename}
+    red: output_red
+    green: output_green
+    blue: output_blue
+    cold_white: output_cw
+    warm_white: output_ww
+    restore_mode: RESTORE_INVERTED_DEFAULT_ON
+    cold_white_color_temperature: 3500 K
+    warm_white_color_temperature: 2000 K

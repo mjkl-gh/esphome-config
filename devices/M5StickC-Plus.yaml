@@ -3,25 +3,11 @@ packages:
   base: !include ../common/base.yaml
 
 esphome:
-  platform: esp32
-  board: m5stick-c
   platformio_options:
     upload_speed: 115200
 
-external_components:
-  - source: github://martydingo/esphome-axp192
-    components: [axp192]
-
-# AXP192 power management - must be present to initialize TFT power on
-sensor:
-  - platform: axp192
-    model: M5STICKC
-    address: 0x34
-    i2c_id: bus_a
-    update_interval: 30s
-    battery_level:
-      name: "M5Stick Battery Level"
-      id: "m5stick_batterylevel"
+esp32:
+  board: m5stick-c
 
 binary_sensor:
   - platform: gpio

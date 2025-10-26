@@ -1,0 +1,14 @@
+substitutions:
+  devicename: "atticlamp"
+  upper_devicename: "Attic lamp"
+
+packages:
+  common: !include devices/localbytes-rgbcct.yaml
+
+light:
+  - id: !extend ${devicename}_light
+    on_turn_on:
+    - delay: 3600s
+    - light.turn_off: 
+        id: ${devicename}_light
+        transition_length: 60s

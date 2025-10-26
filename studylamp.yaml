@@ -1,0 +1,6 @@
+substitutions:
+  devicename: studylamp
+  upper_devicename: "Study lamp"
+
+packages:
+  common: !include devices/lsc-cwww.yaml
